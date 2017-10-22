@@ -162,11 +162,10 @@ function restockInventory(id,amount,available) {
 	); 
 }
 
-//turn this into a promise...
 function addNewProduct (){
 	console.log("add new product");
 
-	return askForProduct().then( answer => addToDatabase(answer) )
+	return askForProduct().then( answer => addProdToDatabase(answer) )
 }
 
 function askForProduct () {
@@ -207,7 +206,7 @@ function askForProduct () {
 	return inquirer.prompt(question);	
 }
 
-function addToDatabase (answer) {
+function addProdToDatabase (answer) {
 		console.log(answer)
 
 		connection.query(
