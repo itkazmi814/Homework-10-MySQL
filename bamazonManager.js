@@ -37,22 +37,16 @@ function getCommand() {
 }
 
 function runCommand(answer) {
-	switch(answer.command){
-		case "View Products for Sale":
-			viewProductsForSale();
-			break;
-
-		case "View Low Inventory":
-			viewLowInventory();
-			break;
-
-		case "Add to Inventory":
-			addToInventory();
-			break;
-
-		case "Add New Product":
-			addNewProduct();
-			break;
+	if(answer.command === "View Products for Sale"){
+		return viewProductsForSale();
+	}else if(answer.command === "View Low Inventory"){
+		return viewLowInventory();
+	}else if(answer.command === "Add to Inventory"){
+		return addToInventory();
+	}else if(answer.command === "Add New Product"){
+		return addNewProduct();
+	}else{
+		connection.end();
 	}
 }
 
@@ -92,14 +86,11 @@ function addToInventory (){
 	connection.query("SELECT * FROM products", (err,res) => {
 		if(err) throw err;
 		
-		return getProducts(res).then( products => userSelectsProduct(products) ).then( answer => restockInventory(answer) );
-
+		Promise.resolve()
+		.then( () => getProducts(res) )
+		.then( products => userRestocksProduct(products) )
+		.then( answer => placeRestockOrder(answer) )
 	})
-}
-
-function addNewProduct (){
-	console.log("add new product");
-	connection.end();
 }
 
 function getProducts(res) {
@@ -113,7 +104,7 @@ function getProducts(res) {
 	return products;
 } 
 
-function userSelectsProduct (products) {
+function userRestocksProduct (products) {
 	var questions = [
 		{
 			name: "selectedProduct",
@@ -121,7 +112,7 @@ function userSelectsProduct (products) {
 			message: "What would you like to restock?",
 			choices: products
 		},{
-			name: "orderAmount",
+			name: "restockAmount",
 			type: "input",
 			message: "How much would you like to restock?",
 			validate: function(input) {
@@ -137,8 +128,102 @@ function userSelectsProduct (products) {
 	return inquirer.prompt(questions);
 }
 
-function restockInventory (answer) {
+function placeRestockOrder (answer) {
 	console.log("restocking")
 	console.log(answer)
-	connection.end()
+
+	var restockID = answer.selectedProduct.substring(0,answer.selectedProduct.indexOf("."));
+	var restockAmount = parseInt(answer.restockAmount);
+	var available;
+
+	connection.query("SELECT * FROM products WHERE ?",{item_id: restockID},(err,res) => {
+		if(err) throw err;
+
+		available = res[0].stock_quantity;
+		restockInventory(restockID,restockAmount,available);
+	})
+}
+
+function restockInventory(id,amount,available) {
+	console.log(id,amount,available)
+	console.log(`Updating quantity for item #${id} from ${available} to ${(amount+available)}`)
+
+	connection.query(
+		"UPDATE products SET ? WHERE ?",
+		[{stock_quantity: (available+amount)},{item_id: id}],
+		(err,res) => {s
+     		console.log(res.affectedRows + " product updated");
+			console.log(res)
+			connection.end();
+		}
+	); 
+}
+
+//turn this into a promise...
+function addNewProduct (){
+	console.log("add new product");
+
+	var numberValidation = function(input) {
+		if(isNaN(input) === false) {
+			return true;
+		}
+		console.log("\nPlease enter a number")
+		return false;
+	}
+
+	var question = [
+		{
+			name: "prodName",
+			type: "input",
+			message: "What is the product name?"
+		},{
+			name: "departmentName",
+			type: "input",
+			message: "What department does it belong in?"
+		},{
+			name: "itemPrice",
+			type: "input",
+			message: "What is the unit price?",
+			validate: function(input) {
+				if(isNaN(input) === false) {
+					return true;
+				}
+				console.log("\nPlease enter a number")
+				return false;
+			}
+		},{
+			name: "stockQuantity",
+			type: "input",
+			message: "How many to stock?",
+			validate: function(input) {
+				if(isNaN(input) === false) {
+					return true;
+				}
+				console.log("\nPlease enter a number")
+				return false;
+			}
+		}
+	];	
+
+	inquirer.prompt(question).then( answer => {
+		console.log(answer)
+
+		connection.query(
+			"INSERT INTO products SET ?",
+			{
+				product_name: answer.prodName,
+				department_name: answer.departmentName,
+				price: answer.itemPrice,
+				stock_quantity: answer.stockQuantity
+			},
+			(err,res) =>{
+				if(err) throw err;
+				console.log(res.affectedRows + " product inserted")
+			}
+			
+			connection.end();
+		);
+
+	})
+
 }
