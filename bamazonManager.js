@@ -90,6 +90,7 @@ function addToInventory (){
 		.then( () => getProducts(res) )
 		.then( products => userRestocksProduct(products) )
 		.then( answer => placeRestockOrder(answer) )
+		// .then( (restockID,restockAmount,available) => restockInventory(restockID,restockAmount,available) )
 	})
 }
 
@@ -136,12 +137,14 @@ function placeRestockOrder (answer) {
 	var restockAmount = parseInt(answer.restockAmount);
 	var available;
 
-	connection.query("SELECT * FROM products WHERE ?",{item_id: restockID},(err,res) => {
+	var query = connection.query("SELECT * FROM products WHERE ?",{item_id: restockID},(err,res) => {
 		if(err) throw err;
 
 		available = res[0].stock_quantity;
 		restockInventory(restockID,restockAmount,available);
 	})
+
+	return query;
 }
 
 function restockInventory(id,amount,available) {
@@ -151,7 +154,7 @@ function restockInventory(id,amount,available) {
 	connection.query(
 		"UPDATE products SET ? WHERE ?",
 		[{stock_quantity: (available+amount)},{item_id: id}],
-		(err,res) => {s
+		(err,res) => {
      		console.log(res.affectedRows + " product updated");
 			console.log(res)
 			connection.end();
@@ -163,14 +166,10 @@ function restockInventory(id,amount,available) {
 function addNewProduct (){
 	console.log("add new product");
 
-	var numberValidation = function(input) {
-		if(isNaN(input) === false) {
-			return true;
-		}
-		console.log("\nPlease enter a number")
-		return false;
-	}
+	return askForProduct().then( answer => addToDatabase(answer) )
+}
 
+function askForProduct () {
 	var question = [
 		{
 			name: "prodName",
@@ -205,7 +204,10 @@ function addNewProduct (){
 		}
 	];	
 
-	inquirer.prompt(question).then( answer => {
+	return inquirer.prompt(question);	
+}
+
+function addToDatabase (answer) {
 		console.log(answer)
 
 		connection.query(
@@ -216,14 +218,10 @@ function addNewProduct (){
 				price: answer.itemPrice,
 				stock_quantity: answer.stockQuantity
 			},
-			(err,res) =>{
+			(err,res) => {
 				if(err) throw err;
 				console.log(res.affectedRows + " product inserted")
+				connection.end();
 			}
-			
-			connection.end();
 		);
-
-	})
-
 }

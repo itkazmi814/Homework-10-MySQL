@@ -77,6 +77,8 @@ function verifyOrderAmount (answer) {
 		
 		var available = res[0].stock_quantity;
 		var unitPrice = res[0].price;
+		var prodSales = res[0].product_sales;
+
 		console.log(orderID, orderAmount, available)
 
 		console.log("")
@@ -87,7 +89,7 @@ function verifyOrderAmount (answer) {
 		console.log("")
 
 		if(res[0].stock_quantity >= orderAmount){
-			placeOrder(orderID,orderAmount,available,unitPrice);
+			placeOrder(orderID,orderAmount,available,unitPrice,prodSales);
 		}else{
 			//if stock < order quantity => reject order
 			console.log("Insufficient quantity! Order prevented.");
@@ -96,14 +98,19 @@ function verifyOrderAmount (answer) {
 	})
 }
 
-function placeOrder(id,orderAmount,available,unitPrice) {
-	console.log(`Placing order for item #${id}. Quantity: ${orderAmount}`)
+function placeOrder(id,orderAmount,available,unitPrice,prodSales) {
+	console.log(`Placing order for item #${id}. Order Quantity: ${orderAmount}`)
+	var totalPrice = orderAmount * unitPrice;
 
 	connection.query(
 		"UPDATE products SET ? WHERE ?",
-		[{stock_quantity: (available-orderAmount)},{item_id: id}],
+		[{
+			stock_quantity: (available-orderAmount),
+			product_sales: (prodSales + totalPrice)
+		},{
+			item_id: id
+		}],
 		(err,res) => {
-			var totalPrice = orderAmount * unitPrice;
 			console.log(`Total Cost: $${totalPrice}`)
 			connection.end();
 		}
