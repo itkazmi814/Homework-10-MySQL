@@ -11,12 +11,14 @@ var connection = mysql.createConnection({
 	database: "bamazon"
 })
 
-//connect to database
+//connects to mySQL database
 connection.connect( err => {
 	if(err) throw err;
 	getCommand();
 })
 
+//Asks user what they want to do
+//This function is used for looping back to the main menu after completing an action
 function getCommand() {
 	var question = {
 		name: "command",
@@ -35,8 +37,9 @@ function getCommand() {
 	})
 }
 
+//Takes the user selection from getCommand
+//Creates a promise chain
 function startCustomer() {
-	//get data from DB
 	connection.query("SELECT * FROM products", (err,res) => {
 		if(err) throw err;
 
@@ -48,6 +51,7 @@ function startCustomer() {
 	})
 }
 
+//Pulls the products table from mySQL database and stores it in an array
 function getProducts(res) {
 	var products = [];
 	
@@ -57,7 +61,8 @@ function getProducts(res) {
 	return products;
 }
 
-//get order product and amount
+//Inquirer prompt asks user what product they want to order
+//Uses the array pulled from products table to display possible choices to the user
 function userSelectsProduct (products) {
 	var questions = [
 		{
@@ -82,6 +87,9 @@ function userSelectsProduct (products) {
 	return inquirer.prompt(questions);
 }
 
+//Takes the product the user is ordering
+//Reads mysql database and checks amount of said product available
+//Acts according to product availability
 function verifyOrderAmount (answer) {
 	var orderID = answer.selectedProduct.substring(0,answer.selectedProduct.indexOf("."));
 	var orderAmount = answer.orderAmount; 
@@ -102,6 +110,7 @@ function verifyOrderAmount (answer) {
 		console.log(`Available: ${res[0].stock_quantity}`)
 		console.log("")
 
+
 		if(res[0].stock_quantity >= orderAmount){
 			placeOrder(orderID,orderAmount,available,unitPrice,prodSales);
 		}else{
@@ -114,8 +123,9 @@ function verifyOrderAmount (answer) {
 	})
 }
 
+//Called if sufficient inventory to fulfill order
+//Updates products table
 function placeOrder(id,orderAmount,available,unitPrice,prodSales) {
-	console.log(`Placing order for item #${id}. Order Quantity: ${orderAmount}`)
 	var totalPrice = orderAmount * unitPrice;
 
 	connection.query(
@@ -127,8 +137,11 @@ function placeOrder(id,orderAmount,available,unitPrice,prodSales) {
 			item_id: id
 		}],
 		(err,res) => {
+			console.log(`Placing order for item #${id}. Order Quantity: ${orderAmount}`)
 			console.log(`Total Cost: $${totalPrice}`)
-			connection.end();
+			console.log("")
+
+			getCommand();
 		}
 	); 
 }
