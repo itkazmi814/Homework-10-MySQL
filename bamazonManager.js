@@ -81,7 +81,6 @@ function viewLowInventory () {
 }
 
 function addToInventory (){
-	console.log("add to inventory")
 	connection.query("SELECT * FROM products", (err,res) => {
 		if(err) throw err;
 		
@@ -131,14 +130,12 @@ function placeRestockOrder (answer) {
 	var restockAmount = parseInt(answer.restockAmount);
 	var available;
 
-	var query = connection.query("SELECT * FROM products WHERE ?",{item_id: restockID},(err,res) => {
+	connection.query("SELECT * FROM products WHERE ?",{item_id: restockID},(err,res) => {
 		if(err) throw err;
 
 		available = res[0].stock_quantity;
 		restockInventory(restockID,restockAmount,available);
 	})
-
-	return query;
 }
 
 function restockInventory(id,amount,available) {

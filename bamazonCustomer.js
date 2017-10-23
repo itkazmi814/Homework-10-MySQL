@@ -48,9 +48,7 @@ function startCustomer() {
 		.then( () => getProducts(res) )
 		.then( products => userSelectsProduct(products) )
 		.then( answer => verifyOrderAmount(answer))
-		.then( order => placeOrder(order))
-		.then( () => getCommand())
-		.catch(err => console.error('Promise error', err))
+		.catch( err => console.error('Promise error', err))
 
 	})
 }
@@ -97,45 +95,39 @@ function userSelectsProduct (products) {
 function verifyOrderAmount (answer) {
 	var orderID = answer.selectedProduct.substring(0,answer.selectedProduct.indexOf("."));
 	var orderAmount = answer.orderAmount; 
-	 console.log("top of the verifyOrderAmount")
-	 return new Promise((resolve, reject) => {
 
-	 connection.query("SELECT * FROM products WHERE ?",{item_id: orderID}, (err,res) => {
-		if(err) reject(err);
+	connection.query("SELECT * FROM products WHERE ?",{item_id: orderID}, (err,res) => {
+		if(err) throw(err);
 		
 		var available = res[0].stock_quantity;
 		var unitPrice = res[0].price;
 		var prodSales = res[0].product_sales;
 
-		await console.log("")
-		await console.log(`Buying: ${res[0].product_name} (Prod ID ${orderID})`)
-		await console.log(`Quantity: ${orderAmount}`)
-		await console.log(`Unit Price: $${unitPrice}`)
-		await console.log(`Available: ${res[0].stock_quantity}`)
-		await console.log("")
-
+		console.log("")
+		console.log(`Buying: ${res[0].product_name} (Prod ID ${orderID})`)
+		console.log(`Quantity: ${orderAmount}`)
+		console.log(`Unit Price: $${unitPrice}`)
+		console.log(`Available: ${res[0].stock_quantity}`)
+		console.log("")
 
 		if(res[0].stock_quantity >= orderAmount){
 			placeOrder(orderID,orderAmount,available,unitPrice,prodSales);
-			resolve()
 		}else{
-			//if stock < order quantity => reject order
 			console.log("Insufficient quantity! Order prevented.");
 			console.log("");
-			
-			// getCommand();
+
+			getCommand();
 		}
 	})
 
-	 })
 }
 
 //Called if sufficient inventory to fulfill order
 //Updates products table
-async function placeOrder(id,orderAmount,available,unitPrice,prodSales) {
+function placeOrder(id,orderAmount,available,unitPrice,prodSales) {
 	var totalPrice = orderAmount * unitPrice;
 
-	await connection.query(
+	connection.query(
 		"UPDATE products SET ? WHERE ?",
 		[{
 			stock_quantity: (available-orderAmount),
@@ -148,8 +140,7 @@ async function placeOrder(id,orderAmount,available,unitPrice,prodSales) {
 			console.log(`Total Cost: $${totalPrice}`)
 			console.log("")
 
-			connection.end()
-			// getCommand();
+			getCommand();
 		}
 	); 
 }
