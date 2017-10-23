@@ -30,7 +30,8 @@ function getCommand() {
 		type: "list",
 		message: "What would you like to do?",
 		choices: ["View Products Sales by Department",
-				"Create New Department",]
+				"Create New Department",
+				"Quit"]
 	}
 	return inquirer.prompt(question);
 }
@@ -40,14 +41,13 @@ function runCommand(answer) {
 		return viewProdSalesByDept();
 	}else if(answer.command === "Create New Department"){
 		return createNewDept();
-	}else{
+	}else if (answer.command === "Quit"){
+		console.log("Thank you. Now leaving.");
 		connection.end();
 	}
 }
 
 function viewProdSalesByDept () {
-	console.log("view sales by dept")
-
 	var query = "SELECT department_id, departments.department_name, over_head_costs, SUM(product_sales) AS product_sales, (product_sales-over_head_costs) AS total_profit " +
 		"FROM departments " + 
 		"LEFT JOIN products ON departments.department_name = products.department_name " +
@@ -55,17 +55,16 @@ function viewProdSalesByDept () {
 
 	connection.query(query, (err,res) => {
 		if(err) throw err;
-		console.log(res);
 		console.log("");
-		console.table(res)
-		connection.end();
+		console.table(res);
+		console.log("");
+		
+		startSupervisor();
 	})
 }
 
 function createNewDept () {
-	console.log("creating new dept");
 	return askForNewDept().then( answer => addDeptToDatabase(answer) )
-	connection.end();
 }
 
 function askForNewDept () {
@@ -100,10 +99,13 @@ function addDeptToDatabase (answer) {
 			},
 			(err,res) => {
 				if(err) throw err;
+				console.log("")
 				console.log("You have successfully added a new department with the following fields:")
 				console.log(`Department Name: ${answer.deptName}`)
 				console.log(`Over Head Costs: ${answer.overHeadCosts}`)
-				connection.end();
+				console.log("")
+				// connection.end()
+				startSupervisor();
 			}
 		);
 }

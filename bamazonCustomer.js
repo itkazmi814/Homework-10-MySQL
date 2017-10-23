@@ -1,5 +1,6 @@
 var mysql = require("mysql");
 var inquirer = require("inquirer");
+var consoleTable = require("console.table");
 
 //create database connection
 var connection = mysql.createConnection({
@@ -13,9 +14,26 @@ var connection = mysql.createConnection({
 //connect to database
 connection.connect( err => {
 	if(err) throw err;
-	startCustomer();
+	getCommand();
 })
 
+function getCommand() {
+	var question = {
+		name: "command",
+		type: "list",
+		message: "What would you like to do?",
+		choices: ["Order products","Quit",]
+	}
+
+	inquirer.prompt(question).then( answer => {
+		if(answer.command === "Order products"){
+			return startCustomer();
+		}else if(answer.command === "Quit"){
+			console.log("Thank you for shopping with us.")
+			connection.end();
+		}	
+	})
+}
 
 function startCustomer() {
 	//get data from DB
@@ -27,13 +45,9 @@ function startCustomer() {
 		.then( () => getProducts(res) )
 		.then( products => userSelectsProduct(products) )
 		.then( answer => verifyOrderAmount(answer) )
-
-	}) //end connection.query
-
+	})
 }
 
-//breaks if i have the connection.query occur here instead of in startCustomer
-//seems like userSelectsProduct will run first
 function getProducts(res) {
 	var products = [];
 	
@@ -93,7 +107,9 @@ function verifyOrderAmount (answer) {
 		}else{
 			//if stock < order quantity => reject order
 			console.log("Insufficient quantity! Order prevented.");
-			connection.end()
+			console.log("");
+			
+			getCommand();
 		}
 	})
 }

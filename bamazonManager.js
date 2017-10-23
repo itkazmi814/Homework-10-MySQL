@@ -1,5 +1,7 @@
 var mysql = require("mysql");
 var inquirer = require("inquirer");
+var consoleTable = require("console.table");
+
 
 //create database connection
 var connection = mysql.createConnection({
@@ -31,7 +33,8 @@ function getCommand() {
 		choices: ["View Products for Sale",
 				"View Low Inventory",
 				"Add to Inventory",
-				"Add New Product"]
+				"Add New Product",
+				"Quit"]
 	}
 	return inquirer.prompt(question);
 }
@@ -45,7 +48,8 @@ function runCommand(answer) {
 		return addToInventory();
 	}else if(answer.command === "Add New Product"){
 		return addNewProduct();
-	}else{
+	}else if(answer.command === "Quit"){
+		console.log("Thank you. Now leaving.");
 		connection.end();
 	}
 }
@@ -53,31 +57,26 @@ function runCommand(answer) {
 function viewProductsForSale () {
 	connection.query("SELECT * FROM products",(err,res) => {
 		if(err) throw err;
-		
+
 		console.log("");
-		for(var i=0; i<res.length; i++){
-			console.log(`ID: ${res[i].item_id}`);
-			console.log(`Name: ${res[i].product_name}`);
-			console.log(`Price: $${res[i].price}`);
-			console.log(`Stock: ${res[i].stock_quantity}`);
-			console.log("");
-		}
-		connection.end();
+		console.log("Current Inventory: ")
+		console.log("")
+		console.table(res);
+		
+		startManager();
 	})
 }
 
 function viewLowInventory () {
-	connection.query("SELECT * FROM products HAVING stock_quantity < 5", (err,res) => {
+	connection.query("SELECT item_id, product_name, stock_quantity FROM products HAVING stock_quantity < 5", (err,res) => {
 		if(err) throw err;
 
 		console.log("");
 		console.log("The following products have an inventory count of less than five:");
 		console.log("");
+		console.table(res)
 
-		for(var i=0; i<res.length; i++){
-			console.log(`ID: ${res[i].item_id}  Name: ${res[i].product_name}  Stock: ${res[i].stock_quantity}`);
-		}
-		connection.end()
+		startManager();
 	})
 }
 
@@ -90,18 +89,16 @@ function addToInventory (){
 		.then( () => getProducts(res) )
 		.then( products => userRestocksProduct(products) )
 		.then( answer => placeRestockOrder(answer) )
-		// .then( (restockID,restockAmount,available) => restockInventory(restockID,restockAmount,available) )
 	})
 }
 
 function getProducts(res) {
-	var products = [];
-	console.log("display products")
-	
+	var products = [];	
+
 	for(var i=0; i< res.length; i++){
 		products.push(`${res[i].item_id}. ${res[i].product_name}`);
 	}
-	console.log("returning products")
+	
 	return products;
 } 
 
@@ -130,9 +127,6 @@ function userRestocksProduct (products) {
 }
 
 function placeRestockOrder (answer) {
-	console.log("restocking")
-	console.log(answer)
-
 	var restockID = answer.selectedProduct.substring(0,answer.selectedProduct.indexOf("."));
 	var restockAmount = parseInt(answer.restockAmount);
 	var available;
@@ -148,23 +142,20 @@ function placeRestockOrder (answer) {
 }
 
 function restockInventory(id,amount,available) {
-	console.log(id,amount,available)
-	console.log(`Updating quantity for item #${id} from ${available} to ${(amount+available)}`)
-
 	connection.query(
 		"UPDATE products SET ? WHERE ?",
 		[{stock_quantity: (available+amount)},{item_id: id}],
 		(err,res) => {
-     		console.log(res.affectedRows + " product updated");
-			console.log(res)
-			connection.end();
+			console.log("")
+			console.log(`Updating quantity for item #${id} from ${available} to ${(amount+available)}`)
+			console.log("")
+
+			startManager();
 		}
 	); 
 }
 
 function addNewProduct (){
-	console.log("add new product");
-
 	return askForProduct().then( answer => addProdToDatabase(answer) )
 }
 
@@ -207,8 +198,6 @@ function askForProduct () {
 }
 
 function addProdToDatabase (answer) {
-		console.log(answer)
-
 		connection.query(
 			"INSERT INTO products SET ?",
 			{
@@ -219,8 +208,15 @@ function addProdToDatabase (answer) {
 			},
 			(err,res) => {
 				if(err) throw err;
-				console.log(res.affectedRows + " product inserted")
-				connection.end();
+				console.log("")
+				console.log(`Added a new product: `);
+				console.log(`Name: ${answer.prodName}`)
+				console.log(`Department: ${answer.departmentName}`)
+				console.log(`Price: ${answer.itemPrice}`)
+				console.log(`Stock: ${answer.stockQuantity}`)
+				console.log("")
+
+				startManager();
 			}
 		);
 }

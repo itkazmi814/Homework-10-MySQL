@@ -28,7 +28,7 @@ INSERT INTO departments (department_name,over_head_costs)
 VALUES ("Clothing",1000),("Household",500),("Electronics",1500),("Grocery",1200);
 
 ALTER TABLE products
-ADD product_sales INTEGER(10) NOT NULL;
+ADD product_sales INTEGER(10) NULL;
 
 SELECT * FROM products;
 SELECT * FROM departments;
