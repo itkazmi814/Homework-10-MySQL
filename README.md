@@ -1,10 +1,7 @@
 # Bamazon Storefront: Node, MySQL
 
 ## [Video Walkthrough](https://youtu.be/d5XfUrNUvG4)
-
-### Technologies
-* Node
-* MySQL
+View to see detailed functionality
 
 ### NPM Packages
 * Inquirer
