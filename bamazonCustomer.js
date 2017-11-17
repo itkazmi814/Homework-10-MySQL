@@ -48,7 +48,14 @@ function startCustomer() {
 		.then( () => getProducts(res) )
 		.then( products => userSelectsProduct(products) )
 		.then( answer => verifyOrderAmount(answer))
-		.catch( err => console.error('Promise error', err))
+		.then( boolean => {
+			//look at the end of verifyorderamt fxn to see how this boolean is used
+			if(boolean) placeOrder(boolean)
+		})
+		.then( () => getCommand() )
+		.catch( err => {
+			console.error('Promise error', err)
+		})
 
 	})
 }
@@ -96,29 +103,39 @@ function verifyOrderAmount (answer) {
 	var orderID = answer.selectedProduct.substring(0,answer.selectedProduct.indexOf("."));
 	var orderAmount = answer.orderAmount; 
 
-	connection.query("SELECT * FROM products WHERE ?",{item_id: orderID}, (err,res) => {
-		if(err) throw(err);
-		
-		var available = res[0].stock_quantity;
-		var unitPrice = res[0].price;
-		var prodSales = res[0].product_sales;
+	var query = 
 
-		console.log("")
-		console.log(`Buying: ${res[0].product_name} (Prod ID ${orderID})`)
-		console.log(`Quantity: ${orderAmount}`)
-		console.log(`Unit Price: $${unitPrice}`)
-		console.log(`Available: ${res[0].stock_quantity}`)
-		console.log("")
+	return new Promise ((resolve, reject) => {
+		connection.query("SELECT * FROM products WHERE ?",{item_id: orderID}, (err,res) => {
+				if(err) throw(err);
+				
+				var available = res[0].stock_quantity;
+				var unitPrice = res[0].price;
+				var prodSales = res[0].product_sales;
 
-		if(res[0].stock_quantity >= orderAmount){
-			placeOrder(orderID,orderAmount,available,unitPrice,prodSales);
-		}else{
-			console.log("Insufficient quantity! Order prevented.");
-			console.log("");
+				console.log("")
+				console.log(`Buying: ${res[0].product_name} (Prod ID ${orderID})`)
+				console.log(`Quantity: ${orderAmount}`)
+				console.log(`Unit Price: $${unitPrice}`)
+				console.log(`Available: ${res[0].stock_quantity}`)
+				console.log("")
 
-			getCommand();
-		}
-	})
+				if(res[0].stock_quantity >= orderAmount){
+					placeOrder(orderID,orderAmount,available,unitPrice,prodSales);
+				}else{
+					console.log("Insufficient quantity! Order prevented.");
+					console.log("");
+					Promise.reject();
+					// getCommand();
+				}
+
+				Promise.resolve(/*object that contains the placeOrder arguments.
+					also has a boolean that tells you if you can place the order or not*/);
+
+			})
+
+
+	}); // end of return new promise
 
 }
 
@@ -140,7 +157,7 @@ function placeOrder(id,orderAmount,available,unitPrice,prodSales) {
 			console.log(`Total Cost: $${totalPrice}`)
 			console.log("")
 
-			getCommand();
+			// getCommand();
 		}
 	); 
 }
